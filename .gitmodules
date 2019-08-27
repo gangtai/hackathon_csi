@@ -1,0 +1,4 @@
+[submodule "speccy"]
+	path = speccy
+	url = ssh://git@gitlab.iw.moxa.com:30/Joey_Peng/speccy.git
+	branch = iw_dev
