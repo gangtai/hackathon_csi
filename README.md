@@ -28,3 +28,10 @@ python3 iw_spectrum.py
 ```
 
 ![](images/spectrum_lsdk.PNG)
+
+
+# IW CSI
+```
+python3 iw_csi.py
+```
+![](images/csi.PNG)
