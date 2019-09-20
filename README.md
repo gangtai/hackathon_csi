@@ -1,6 +1,6 @@
 # IW Spectrum & CSI
 
-Draw spectrum & CSI
+Draw Spectrum & CSI
 
 ## Getting Started
 ### 1. Clone iw-spectrum project
