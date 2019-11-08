@@ -43,6 +43,15 @@ CSI_PORT = 3490
 #     int imag;
 # }COMPLEX;
 
+imagePath = "enter the path to your image here"
+
+class ImgWidget1(QtGui.QLabel):
+
+    def __init__(self, parent=None):
+        super(ImgWidget1, self).__init__(parent)
+        pic = QtGui.QPixmap(imagePath)
+        self.setPixmap(pic)
+
 class IwCSI(QtCore.QThread):
     update = QtCore.pyqtSignal(tuple)
 
@@ -276,6 +285,8 @@ class CSIWidget(QtGui.QWidget):
         self.v1.addLayout(self.nrnc_box)
         self.v1.addLayout(self.ip_box)
 
+        self.table_init()
+
         self.csi_amp = CSIPlot()
         self.csi_amp.setTitle(title + ' (Amplitude)')
         self.csi_amp.setXRange(0, 113)
@@ -286,25 +297,9 @@ class CSIWidget(QtGui.QWidget):
         self.csi_amp.addItem(self.esnr_text)
         self.esnr_text.setPos(0, 50)
 
-        self.csi_phase = CSIPlot()
-        self.csi_phase.setTitle(title + ' (Phase)')
-        self.csi_phase.setXRange(0, 113)
-        self.csi_phase.setYRange(-8, +8)
-        self.csi_phase.setLabel('left', 'Radian')
-        self.csi_phase.setLabel('bottom', 'Subcarrier Index')
-
-        self.cir = CSIPlot()
-        self.cir.setTitle(title + ' (Channel Impulse Response)')
-        self.cir.setXRange(0, 3e-6)
-        self.cir.setYRange(-10, +40)
-        self.cir.setLabel('left', 'Amplitude', 'dB')
-        self.cir.setLabel('bottom', 'Second')
-        self.cir.x_format = '{:.2e}'
-
         self.v2 = QtGui.QVBoxLayout()
         self.v2.addWidget(self.csi_amp)
-        self.v2.addWidget(self.csi_phase)
-        self.v2.addWidget(self.cir)
+        self.v2.addWidget(self.table)
 
         self.h1 = QtGui.QHBoxLayout()
         self.h1.addLayout(self.v1)
@@ -315,6 +310,55 @@ class CSIWidget(QtGui.QWidget):
         self.start_btn.clicked.connect(self.start_func)
         self.stop_btn.clicked.connect(self.stop_func)
     
+    def table_init(self):
+        table = QtGui.QTableWidget()
+
+        font = QtGui.QFont('微軟雅黑', 13)
+        font.setBold(True)  #設置字體加粗
+        table.horizontalHeader().setFont(font) #設置表頭字體 
+            
+        table.setFrameShape(QtGui.QFrame.NoFrame)  ##設置無表格的外框
+        table.horizontalHeader().setFixedHeight(80) ##設置表頭高度
+        table.setFixedHeight(300) ##設置表頭高度
+        #table.horizontalHeader().setStretchLastSection(True) ##設置最後一列拉伸至最大
+        table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
+        table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.Stretch)
+        table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
+        table.horizontalHeader().setResizeMode(3, QtGui.QHeaderView.Stretch)
+        table.setColumnCount(3)
+        table.setRowCount(4)
+        
+        table.setHorizontalHeaderLabels(['MAC address','Status','Correlation'])#設置表頭文字
+
+        newItem = QtGui.QTableWidgetItem("00:90:E8:00:00:01")
+        table.setItem(0, 0, newItem)
+        newItem = QtGui.QTableWidgetItem("00:90:E8:00:00:02")
+        table.setItem(1, 0, newItem)
+        newItem = QtGui.QTableWidgetItem("00:90:E8:00:00:03")
+        table.setItem(2, 0, newItem)
+        newItem = QtGui.QTableWidgetItem("00:90:E8:00:00:04")
+        table.setItem(3, 0, newItem)
+
+        table.setItem(0, 2, QtGui.QTableWidgetItem("0"))
+        table.setItem(1, 2, QtGui.QTableWidgetItem("0"))
+        table.setItem(2, 2, QtGui.QTableWidgetItem("0"))
+        table.setItem(3, 2, QtGui.QTableWidgetItem("0"))
+
+        table.setItem(0, 1, QtGui.QTableWidgetItem())
+        table.item(0, 1).setBackground(QtGui.QColor(255,0,0))
+        table.setItem(1, 1, QtGui.QTableWidgetItem())
+        table.item(1, 1).setBackground(QtGui.QColor(255,0,0))
+        table.setItem(2, 1, QtGui.QTableWidgetItem())
+        table.item(2, 1).setBackground(QtGui.QColor(255,0,0))
+        table.setItem(3, 1, QtGui.QTableWidgetItem())
+        table.item(3, 1).setBackground(QtGui.QColor(255,0,0))
+
+        table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+        table.horizontalHeader().setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+        self.table = table
+
     def pause_func(self):
         self.pause = not self.pause
 
