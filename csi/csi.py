@@ -9,7 +9,9 @@ from scipy.stats import norm
 # for debugging
 import ptvsd
 
-SERVER_IP = "192.168.127.253"
+SERVER_IP = "192.168.127.225"
+#STA1_IP = "192.168.127.235"
+#STA1_LEN = "100"
 CSI_PORT = 3490
 
 # typedef struct
@@ -245,10 +247,10 @@ class CSIWidget(QtGui.QWidget):
         self.nrnc_box.addWidget(self.nc_cb)
 
         self.ip_box = QtGui.QHBoxLayout()
-        self.server_ip_t = QtGui.QLineEdit(server_ip)
+        #self.server_ip_t = QtGui.QLineEdit(server_ip)
         self.start_btn = QtGui.QPushButton('Start')
         self.stop_btn = QtGui.QPushButton('Stop')
-        self.ip_box.addWidget(self.server_ip_t)
+        #self.ip_box.addWidget(self.server_ip_t)
         self.ip_box.addWidget(self.start_btn)
         self.ip_box.addWidget(self.stop_btn)
 
@@ -267,23 +269,96 @@ class CSIWidget(QtGui.QWidget):
         self.nr_cb.setMaximumWidth(width/2)
         self.nc_cb.setMaximumWidth(width/2)
 
-        self.server_ip_t.setMaximumWidth(width/2)
+        #self.server_ip_t.setMaximumWidth(width/2)
         self.start_btn.setMaximumWidth(width/4)
         self.stop_btn.setMaximumWidth(width/4)
 
         self.v1 = QtGui.QVBoxLayout()
-        self.v1.addWidget(self.tstamp_t)
-        self.v1.addWidget(self.channel_t)
-        self.v1.addWidget(self.bw_t)
-        self.v1.addWidget(self.rate_t)
-        self.v1.addWidget(self.rssi_t)
-        self.v1.addWidget(self.rssi0_t)
-        self.v1.addWidget(self.rssi1_t)
-        self.v1.addWidget(self.rssi2_t)
-        self.v1.addWidget(self.nf_t)
-        self.v1.addWidget(self.pause_btn)
-        self.v1.addLayout(self.nrnc_box)
-        self.v1.addLayout(self.ip_box)
+        #self.v1.addWidget(self.tstamp_t)
+        #self.v1.addWidget(self.channel_t)
+        #self.v1.addWidget(self.bw_t)
+        #self.v1.addWidget(self.rate_t)
+        #self.v1.addWidget(self.rssi_t)
+        #self.v1.addWidget(self.rssi0_t)
+        #self.v1.addWidget(self.rssi1_t)
+        #self.v1.addWidget(self.rssi2_t)
+        #self.v1.addWidget(self.nf_t)
+        #self.v1.addWidget(self.pause_btn)
+        #self.v1.addLayout(self.nrnc_box)
+        #self.v1.addLayout(self.ip_box)
+
+        #FRED: elements for demo
+        self.label_ap = QtGui.QLabel(self)
+        self.label_ap.setText("AP IP")
+        self.tb_ap = QtGui.QLineEdit(server_ip)
+        self.tb_ap.setMaximumWidth(width/2)
+
+        self.label_sta1ip = QtGui.QLabel(self)
+        self.label_sta1ip.setText("STA1 IP")
+        self.tb_sta1ip = QtGui.QLineEdit("192.168.127.235")
+        self.tb_sta1ip.setMaximumWidth(width/2)
+        self.label_sta1len = QtGui.QLabel(self)
+        self.label_sta1len.setText("STA1 Len")
+        self.tb_sta1len = QtGui.QLineEdit("100")
+        self.tb_sta1len.setMaximumWidth(width/4)
+        self.label_sta2ip = QtGui.QLabel(self)
+        self.label_sta2ip.setText("STA2 IP")
+        self.tb_sta2ip = QtGui.QLineEdit("")
+        self.tb_sta2ip.setMaximumWidth(width/2)
+        self.label_sta2len = QtGui.QLabel("")
+        self.label_sta2len.setText("STA2 Len")
+        self.tb_sta2len = QtGui.QLineEdit("")
+        self.tb_sta2len.setMaximumWidth(width/4)
+        self.label_sta3ip = QtGui.QLabel(self)
+        self.label_sta3ip.setText("STA3 IP")
+        self.tb_sta3ip = QtGui.QLineEdit("")
+        self.tb_sta3ip.setMaximumWidth(width/2)
+        self.label_sta3len = QtGui.QLabel("")
+        self.label_sta3len.setText("STA3 Len")
+        self.tb_sta3len = QtGui.QLineEdit("")
+        self.tb_sta3len.setMaximumWidth(width/4)
+
+        self.lo_ap = QtGui.QHBoxLayout()
+        self.lo_ap.addWidget(self.label_ap)
+        self.lo_ap.addWidget(self.tb_ap)
+        self.v1.addLayout(self.lo_ap)
+
+        self.lo_sta1ip = QtGui.QHBoxLayout()
+        self.lo_sta1ip.addWidget(self.label_sta1ip)
+        self.lo_sta1ip.addWidget(self.tb_sta1ip)
+        self.v1.addLayout(self.lo_sta1ip)
+        self.lo_sta1len = QtGui.QHBoxLayout()
+        self.lo_sta1len.addWidget(self.label_sta1len)
+        self.lo_sta1len.addWidget(self.tb_sta1len)
+        self.v1.addLayout(self.lo_sta1len)
+
+        self.lo_sta2ip = QtGui.QHBoxLayout()
+        self.lo_sta2ip.addWidget(self.label_sta2ip)
+        self.lo_sta2ip.addWidget(self.tb_sta2ip)
+        self.v1.addLayout(self.lo_sta2ip)
+        self.lo_sta2len = QtGui.QHBoxLayout()
+        self.lo_sta2len.addWidget(self.label_sta2len)
+        self.lo_sta2len.addWidget(self.tb_sta2len)
+        self.v1.addLayout(self.lo_sta2len)
+
+        self.lo_sta3ip = QtGui.QHBoxLayout()
+        self.lo_sta3ip.addWidget(self.label_sta3ip)
+        self.lo_sta3ip.addWidget(self.tb_sta3ip)
+        self.v1.addLayout(self.lo_sta3ip)
+        self.lo_sta3len = QtGui.QHBoxLayout()
+        self.lo_sta3len.addWidget(self.label_sta3len)
+        self.lo_sta3len.addWidget(self.tb_sta3len)
+        self.v1.addLayout(self.lo_sta3len)
+
+        self.lo_train_test_button = QtGui.QHBoxLayout()
+        self.training_btn = QtGui.QPushButton('Training\nStart')
+        self.testing_btn = QtGui.QPushButton('Testing\nStart')
+        self.training_btn.setMaximumWidth(200)
+        self.testing_btn.setMaximumWidth(200)
+        self.lo_train_test_button.addWidget(self.training_btn)
+        self.lo_train_test_button.addWidget(self.testing_btn)
+        self.v1.addLayout(self.lo_train_test_button);
+
 
         self.table_init()
 
@@ -291,7 +366,7 @@ class CSIWidget(QtGui.QWidget):
         self.csi_amp.setTitle(title + ' (Amplitude)')
         self.csi_amp.setXRange(0, 113)
         self.csi_amp.setYRange(0, 50)
-        self.csi_amp.setLabel('left', 'Amplitude', 'dB')
+        self.csi_amp.setLabel('left', 'Amplitude', 'dBm')
         self.csi_amp.setLabel('bottom', 'Subcarrier Index')
         self.esnr_text = pg.TextItem('')
         self.csi_amp.addItem(self.esnr_text)
@@ -365,7 +440,8 @@ class CSIWidget(QtGui.QWidget):
     def start_func(self):
         if (self.started == True):
             return
-        self.server_ip = self.server_ip_t.text()
+        #self.server_ip = self.server_ip_t.text()
+        self.server_ip = self.tb_ap.text()
         self._csi = IwCSI(server_ip=self.server_ip)
         self._csi.update.connect(self.update)
         self._csi.start()
