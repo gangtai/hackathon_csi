@@ -5,6 +5,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
 from scipy.stats import norm
+import threading
 
 # for debugging
 import ptvsd
@@ -273,7 +274,7 @@ class CSIWidget(QtGui.QWidget):
         self.start_btn.setMaximumWidth(width/4)
         self.stop_btn.setMaximumWidth(width/4)
 
-        self.v1 = QtGui.QVBoxLayout()
+        #self.v1 = QtGui.QVBoxLayout()
         #self.v1.addWidget(self.tstamp_t)
         #self.v1.addWidget(self.channel_t)
         #self.v1.addWidget(self.bw_t)
@@ -318,47 +319,55 @@ class CSIWidget(QtGui.QWidget):
         self.tb_sta3len = QtGui.QLineEdit("")
         self.tb_sta3len.setMaximumWidth(width/4)
 
+        self.training_btn = QtGui.QPushButton('Training\nStart')
+        self.testing_btn = QtGui.QPushButton('Test\nStart')
+        self.training_btn.setMaximumWidth(200)
+        self.testing_btn.setMaximumWidth(200)
+        self.testing_btn.setEnabled(False)
+        self.testing_btn.setCheckable(1)
+        self.testing_btn.setChecked(0)
+        self.training_btn.clicked.connect(self.train_start_func)
+        self.testing_btn.clicked.connect(self.test_func)
+
+        # Layout
         self.lo_ap = QtGui.QHBoxLayout()
         self.lo_ap.addWidget(self.label_ap)
         self.lo_ap.addWidget(self.tb_ap)
-        self.v1.addLayout(self.lo_ap)
 
         self.lo_sta1ip = QtGui.QHBoxLayout()
         self.lo_sta1ip.addWidget(self.label_sta1ip)
         self.lo_sta1ip.addWidget(self.tb_sta1ip)
-        self.v1.addLayout(self.lo_sta1ip)
         self.lo_sta1len = QtGui.QHBoxLayout()
         self.lo_sta1len.addWidget(self.label_sta1len)
         self.lo_sta1len.addWidget(self.tb_sta1len)
-        self.v1.addLayout(self.lo_sta1len)
 
         self.lo_sta2ip = QtGui.QHBoxLayout()
         self.lo_sta2ip.addWidget(self.label_sta2ip)
         self.lo_sta2ip.addWidget(self.tb_sta2ip)
-        self.v1.addLayout(self.lo_sta2ip)
         self.lo_sta2len = QtGui.QHBoxLayout()
         self.lo_sta2len.addWidget(self.label_sta2len)
         self.lo_sta2len.addWidget(self.tb_sta2len)
-        self.v1.addLayout(self.lo_sta2len)
 
         self.lo_sta3ip = QtGui.QHBoxLayout()
         self.lo_sta3ip.addWidget(self.label_sta3ip)
         self.lo_sta3ip.addWidget(self.tb_sta3ip)
-        self.v1.addLayout(self.lo_sta3ip)
         self.lo_sta3len = QtGui.QHBoxLayout()
         self.lo_sta3len.addWidget(self.label_sta3len)
         self.lo_sta3len.addWidget(self.tb_sta3len)
-        self.v1.addLayout(self.lo_sta3len)
 
         self.lo_train_test_button = QtGui.QHBoxLayout()
-        self.training_btn = QtGui.QPushButton('Training\nStart')
-        self.testing_btn = QtGui.QPushButton('Testing\nStart')
-        self.training_btn.setMaximumWidth(200)
-        self.testing_btn.setMaximumWidth(200)
         self.lo_train_test_button.addWidget(self.training_btn)
         self.lo_train_test_button.addWidget(self.testing_btn)
-        self.v1.addLayout(self.lo_train_test_button);
 
+        self.v1 = QtGui.QVBoxLayout()
+        self.v1.addLayout(self.lo_ap)
+        self.v1.addLayout(self.lo_sta1ip)
+        self.v1.addLayout(self.lo_sta1len)
+        self.v1.addLayout(self.lo_sta2ip)
+        self.v1.addLayout(self.lo_sta2len)
+        self.v1.addLayout(self.lo_sta3ip)
+        self.v1.addLayout(self.lo_sta3len)
+        self.v1.addLayout(self.lo_train_test_button)
 
         self.table_init()
 
@@ -453,7 +462,56 @@ class CSIWidget(QtGui.QWidget):
             return
         self._csi.stop()
         self.started = False
-    
+        return
+
+    def train_start_func(self):
+        self.training_btn.setEnabled(False)
+        self.training_btn.setText("Training\nProcessing")
+        self.testing_btn.setEnabled(False)
+        self.tb_ap.setEnabled(False)
+        self.tb_sta1ip.setEnabled(False)
+        self.tb_sta1len.setEnabled(False)
+        self.tb_sta2ip.setEnabled(False)
+        self.tb_sta2len.setEnabled(False)
+        self.tb_sta3ip.setEnabled(False)
+        self.tb_sta3len.setEnabled(False)
+        timer = threading.Timer(3, self.train_end_timer)
+        timer.start()
+        return
+
+    def train_end_timer(self):
+        self.training_btn.setEnabled(True)
+        self.training_btn.setText("Training\nComplete")
+        self.testing_btn.setEnabled(True)
+        self.tb_sta1ip.setEnabled(True)
+        self.tb_sta1len.setEnabled(True)
+        self.tb_sta2ip.setEnabled(True)
+        self.tb_sta2len.setEnabled(True)
+        self.tb_sta3ip.setEnabled(True)
+        self.tb_sta3len.setEnabled(True)
+        return
+
+    def test_func(self):
+        if (self.testing_btn.isChecked()):
+            self.testing_btn.setText("Test\nStop")
+            self.training_btn.setEnabled(False)
+            self.tb_sta1ip.setEnabled(False)
+            self.tb_sta1len.setEnabled(False)
+            self.tb_sta2ip.setEnabled(False)
+            self.tb_sta2len.setEnabled(False)
+            self.tb_sta3ip.setEnabled(False)
+            self.tb_sta3len.setEnabled(False)
+        else:
+            self.testing_btn.setText("Test\nStart")
+            self.training_btn.setEnabled(True)
+            self.tb_sta1ip.setEnabled(True)
+            self.tb_sta1len.setEnabled(True)
+            self.tb_sta2ip.setEnabled(True)
+            self.tb_sta2len.setEnabled(True)
+            self.tb_sta3ip.setEnabled(True)
+            self.tb_sta3len.setEnabled(True)
+        return
+
     def update(self, data):
         try:
             if (self.pause):
