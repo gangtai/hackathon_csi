@@ -13,6 +13,10 @@ from threading import Timer,Thread,Event
 import ptvsd
 
 SERVER_IP = "192.168.127.225"
+
+#STA1_IP = "192.168.127.235"
+#STA1_LEN = "100"
+
 CSI_PORT = 3490
 
 # typedef struct
@@ -326,6 +330,8 @@ class CSIWidget(QtGui.QWidget):
         self.lo_train_test_button = QtGui.QHBoxLayout()
         self.lo_train_test_button.addWidget(self.training_btn)
         self.lo_train_test_button.addWidget(self.testing_btn)
+        self.v1.addLayout(self.lo_train_test_button);
+        self.training_btn.clicked.connect(self.start_func)
 
         self.v1 = QtGui.QVBoxLayout()
         self.v1.addLayout(self.lo_ap)
@@ -340,11 +346,13 @@ class CSIWidget(QtGui.QWidget):
         self.table_init()
 
         self.csi_amp = CSIPlot()
+
         #self.csi_amp.setWindowTitle(title + ' (Amplitude)')
         #self.csi_amp.setXRange(0, 113)
         #self.csi_amp.setYRange(0, 50)
         #self.csi_amp.setLabel('left', 'Amplitude', 'dB')
         #self.csi_amp.setLabel('bottom', 'Subcarrier Index')
+
 
         self.v2 = QtGui.QVBoxLayout()
         self.v2.addWidget(self.csi_amp)
@@ -359,18 +367,16 @@ class CSIWidget(QtGui.QWidget):
         self.start_btn.clicked.connect(self.start_func)
         self.stop_btn.clicked.connect(self.stop_func)
 
-        self.timer = perpetualTimer(0.5,self.timer_cb)
+        
         self.q0 = queue.Queue(maxsize = -1)
         self.q1 = queue.Queue(maxsize = -1)
         self.q2 = queue.Queue(maxsize = -1)
         self.draw_amp_signal.connect(self.draw_amp_cb)
 
-
-
     def table_init(self):
         table = QtGui.QTableWidget()
 
-        font = QtGui.QFont('微軟雅黑', 13)
+        font = QtGui.QFont('微軟雅黑', 8)
         font.setBold(True)  #設置字體加粗
         table.horizontalHeader().setFont(font) #設置表頭字體 
             
@@ -429,6 +435,7 @@ class CSIWidget(QtGui.QWidget):
         self._csi.update.connect(self.update)
         self._csi.start()
         self.started = True
+        self.timer = perpetualTimer(0.5,self.timer_cb)
         self.timer.start()
         os.system('killall -9 fping')
         os.system('killall -9 fping')
