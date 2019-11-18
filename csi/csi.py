@@ -9,9 +9,11 @@ from scipy.stats import norm
 import queue  
 from threading import Timer,Thread,Event
 import threading
-
+from csi.real_simu import Classification
+import scipy
 # for debugging
 import ptvsd
+import time
 
 SERVER_IP = "192.168.127.225"
 
@@ -19,7 +21,8 @@ SERVER_IP = "192.168.127.225"
 #STA1_LEN = "100"
 
 CSI_PORT = 3490
-
+TRAIN_LEN = 100
+TEST_LEN = 5
 # typedef struct
 # {
 #     uint64_t tstamp;         /* h/w assigned time stamp */
@@ -50,6 +53,8 @@ CSI_PORT = 3490
 #     int real;
 #     int imag;
 # }COMPLEX;
+
+
 
 
 class perpetualTimer():
@@ -179,10 +184,14 @@ class CSIPlot(pg.GraphicsWindow):
     def __init__(self, parent = None):
         super(CSIPlot, self).__init__(parent)
         #self.showGrid(y=1, alpha=1)
-        self.p1 = self.addPlot()
+        self.p1 = self.addPlot(title="CSI amplitude")
+        self.p1.setRange(xRange=[0, 114])
+        self.p1.setRange(yRange=[10, 30])
+        self.p1.showGrid(y=1, alpha=1)
         self.curve = self.p1.plot()
         self.curve2 = self.p1.plot()
         self.curve3 = self.p1.plot()
+        self.curve_valid = self.p1.plot()
         #self.addItem(self.axis_text)
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
@@ -191,8 +200,9 @@ class CSIPlot(pg.GraphicsWindow):
 
 
 class CSIWidget(QtGui.QWidget):
-    draw_amp_signal = QtCore.pyqtSignal()
-
+    draw_amp_signal = QtCore.pyqtSignal(tuple)
+    draw_center_signal = QtCore.pyqtSignal()
+    update_table_signal = QtCore.pyqtSignal()
     def __init__(self, parent = None, title = '', server_ip = SERVER_IP):
         super(CSIWidget, self).__init__(parent)
         self.started = False
@@ -271,23 +281,32 @@ class CSIWidget(QtGui.QWidget):
         self.label_sta1ip.setText("STA1 IP")
         self.tb_sta1ip = QtGui.QLineEdit("192.168.127.235")
         self.tb_sta1ip.setMaximumWidth(width/2)
+
         self.label_sta1len = QtGui.QLabel(self)
         self.label_sta1len.setText("STA1 Len")
         self.tb_sta1len = QtGui.QLineEdit("1")
         self.tb_sta1len.setMaximumWidth(width/6)
+
         self.label_sta2ip = QtGui.QLabel(self)
         self.label_sta2ip.setText("STA2 IP")
-        self.tb_sta2ip = QtGui.QLineEdit("")
+
+        self.tb_sta2ip = QtGui.QLineEdit("192.168.127.237")
         self.tb_sta2ip.setMaximumWidth(width/2)
-        self.label_sta2len = QtGui.QLabel("")
+
+        self.label_sta2len = QtGui.QLabel(self)
         self.label_sta2len.setText("STA2 Len")
-        self.tb_sta2len = QtGui.QLineEdit("")
+
+        self.tb_sta2len = QtGui.QLabel(self)
+        self.tb_sta2len = QtGui.QLineEdit("2")
         self.tb_sta2len.setMaximumWidth(width/6)
+        
+
         self.label_sta3ip = QtGui.QLabel(self)
         self.label_sta3ip.setText("STA3 IP")
         self.tb_sta3ip = QtGui.QLineEdit("")
         self.tb_sta3ip.setMaximumWidth(width/2)
-        self.label_sta3len = QtGui.QLabel("")
+
+        self.label_sta3len = QtGui.QLabel(self)
         self.label_sta3len.setText("STA3 Len")
         self.tb_sta3len = QtGui.QLineEdit("")
         self.tb_sta3len.setMaximumWidth(width/6)
@@ -331,8 +350,6 @@ class CSIWidget(QtGui.QWidget):
         self.lo_train_test_button = QtGui.QHBoxLayout()
         self.lo_train_test_button.addWidget(self.training_btn)
         self.lo_train_test_button.addWidget(self.testing_btn)
-        self.v1.addLayout(self.lo_train_test_button);
-        self.training_btn.clicked.connect(self.start_func)
 
         #self.v1.addLayout(self.lo_train_test_button);
         #self.training_btn.clicked.connect(self.start_func)
@@ -350,6 +367,7 @@ class CSIWidget(QtGui.QWidget):
         self.v1_widget = QtGui.QWidget()
         self.v1_widget.setLayout(self.v1)
         self.v1_widget.setFixedWidth(250)
+
         self.table_init()
 
         self.csi_amp = CSIPlot()
@@ -374,11 +392,14 @@ class CSIWidget(QtGui.QWidget):
         self.start_btn.clicked.connect(self.start_func)
         self.stop_btn.clicked.connect(self.stop_func)
 
-        
         self.q0 = queue.Queue(maxsize = -1)
         self.q1 = queue.Queue(maxsize = -1)
         self.q2 = queue.Queue(maxsize = -1)
         self.draw_amp_signal.connect(self.draw_amp_cb)
+        self.draw_center_signal.connect(self.draw_center_cb)
+        #self.update_table_signal.connect(self.update_table)
+        self.DUT_obj_dict = {}
+
 
     def table_init(self):
         table = QtGui.QTableWidget()
@@ -398,19 +419,24 @@ class CSIWidget(QtGui.QWidget):
         table.setColumnCount(3)
         table.setRowCount(3)
         
-        table.setHorizontalHeaderLabels(['MAC address','Status','Correlation'])#設置表頭文字
+        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#設置表頭文字
 
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(0, 0, newItem)
+        table.item(0, 0).setBackground(QtGui.QColor(255,255,0))
+
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(1, 0, newItem)
+        table.item(1, 0).setBackground(QtGui.QColor(255,0,255))
+
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(2, 0, newItem)
+        table.item(2, 0).setBackground(QtGui.QColor(0,255,255))
+        
 
         table.setItem(0, 2, QtGui.QTableWidgetItem("0"))
         table.setItem(1, 2, QtGui.QTableWidgetItem("0"))
         table.setItem(2, 2, QtGui.QTableWidgetItem("0"))
-
 
         table.setItem(0, 1, QtGui.QTableWidgetItem())
         table.item(0, 1).setBackground(QtGui.QColor(255,0,0))
@@ -419,13 +445,10 @@ class CSIWidget(QtGui.QWidget):
         table.setItem(2, 1, QtGui.QTableWidgetItem())
         table.item(2, 1).setBackground(QtGui.QColor(255,0,0))
 
-
         table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
         table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
         table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
-
         self.table = table
-
 
     def pause_func(self):
         self.pause = not self.pause
@@ -455,55 +478,126 @@ class CSIWidget(QtGui.QWidget):
         self.test_timer.cancel()
         os.system('killall -9 fping')
 
-    def draw_amp_cb(self):
+    def draw_center_cb(self):
+        x_idx = [i for i in range(114)]
+        self.csi_amp.curve_valid.clear()
+        self.csi_amp.curve_valid.setData(x_idx, self.DUT_obj_dict[0].cent_data,pen='g')
+        #self.update_table()
 
-        self.csi_amp.curve.clear()
-        self.csi_amp.curve2.clear()
-        self.csi_amp.curve3.clear()
+    def draw_amp_cb(self,data):
+        self.draw_amp(data[0],data[1])
 
-        if(self.q0.qsize()>0):
-            data = self.q0.get(False)
-            csi = self.data_to_csi(data)
-            self.draw_amp(csi,0)
+    def inference(self,q):
+        test_data = self.get_train_from_q(q)
+        q.queue.clear()
+        test_data_mean = np.mean(test_data, axis=0)
 
-        if(self.q1.qsize()>0):   
-            data = self.q1.get(False)
-            csi = self.data_to_csi(data)
-            self.draw_amp(csi,1)
+        dist = np.zeros(len(self.DUT_obj_dict), float)
+        for i in range(len(self.DUT_obj_dict)):
+            dist[i] = scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean)
 
-        if(self.q2.qsize()>0):
-            data = self.q2.get(False)
-            csi = self.data_to_csi(data)
-            self.draw_amp(csi,2)
-
+        min_idx = np.argmin(dist)
+        pred = self.DUT_obj_dict[min_idx].prediction()
+        return pred, test_data_mean, dist[0]
+        
     def test_timer_cb(self):
-        print("q0 ",self.q0.qsize())
-        print("q1 ",self.q1.qsize())
-        print("q2 ",self.q2.qsize())
-        self.draw_amp_signal.emit()
+        print("q0 test in",self.q0.qsize())
+        print("q1 test in ",self.q1.qsize())
+        print("q2 test in ",self.q2.qsize())
+
+        if(self.q0.qsize() > TEST_LEN):
+            pred, test_data_mean, corr = self.inference(self.q0)
+            self.draw_amp_signal.emit((test_data_mean,0))
+            self.update_table_status(0,pred,corr)
+        
+        if(self.q1.qsize() > TEST_LEN):
+            pred, test_data_mean, corr = self.inference(self.q1)
+            self.draw_amp_signal.emit((test_data_mean,1))
+            self.update_table_status(1,pred,corr)
+
+        if(self.q2.qsize() > TEST_LEN):
+            pred, test_data_mean, corr = self.inference(self.q2)
+            self.draw_amp_signal.emit((test_data_mean,2))
+            self.update_table_status(2,pred,corr)
+
+        print("q0 test out",self.q0.qsize())
+        print("q1 test out",self.q1.qsize())
+        print("q2 test out",self.q2.qsize())
+
+        self.draw_center_signal.emit()
+
+    def update_table_status(self,idx,pred,corr):
+        if(pred == 1):
+            self.table.item(idx, 1).setBackground(QtGui.QColor(0,255,0))
+        else:
+            self.table.item(idx, 1).setBackground(QtGui.QColor(255,0,0))
+
+        self.table.item(idx, 2).setText( str('%.4f' % corr))
+
+    def _remove_nan(self,data):
+        
+        data = data.dropna(axis=0, how='any')
+        
+        return data
+
+    def _remove_inf(self,data):
+        
+        data = data.replace([np.inf, -np.inf], np.nan)
+        
+        return data
+
+    def _remove_zero(self,data):
+
+        data = data.replace(0, np.nan)
+        
+        return data
+
+    def get_train_from_q(self,q):
+        len = q.qsize()
+        train_data_list = []
+        for i in range(len):
+            data = q.get(False)
+            csi = self.data_to_csi(data)
+            x_idx, y_amp = self._csi.cal_amp(csi)
+            train_data_list.append(y_amp)
+        
+        curr_data = np.array(train_data_list)
+
+        return curr_data
+
 
     def train_timer_cb(self):
         #if qsize > 100 then call train_api
         print("q0 ",self.q0.qsize())
         print("q1 ",self.q1.qsize())
         print("q2 ",self.q2.qsize())
+        
+        if(self.q0.qsize() > TRAIN_LEN):
+            train_data_1 = self.get_train_from_q(self.q0)
+            self.DUT_obj_dict[0] = Classification(train_data_1, 1)
+            self.draw_center_signal.emit()
+
+        if(self.q1.qsize() > TRAIN_LEN):
+            train_data_2 = self.get_train_from_q(self.q1)
+            self.DUT_obj_dict[1] = Classification(train_data_2, 2)
+            
+        if(self.q2.qsize() > TRAIN_LEN):
+            train_data_3 = self.get_train_from_q(self.q3)
+            self.DUT_obj_dict[2] = Classification(train_data_3, 3)
+        
         self.train_end()
-        #self.draw_amp_signal.emit()
 
-    def draw_amp(self, csi, idx):
-
-        x_idx, y_amp = self._csi.cal_amp(csi)
-        self.csi_amp.p1.setRange(xRange=[0, max(x_idx)])
-
+    def draw_amp(self, amp, idx):
+        x_idx = [i for i in range(114)]
         if(idx == 0):
             self.csi_amp.curve.clear()
-            self.csi_amp.curve.setData(x_idx, y_amp,pen='r')
+            self.csi_amp.curve.setData(x_idx, amp,pen=QtGui.QColor(255,255,0))
         if(idx == 1):
             self.csi_amp.curve2.clear()
-            self.csi_amp.curve2.setData(x_idx, y_amp,pen='g')
+            self.csi_amp.curve2.setData(x_idx, amp,pen=QtGui.QColor(255,0,255))
         if(idx == 2):
             self.csi_amp.curve3.clear()
-            self.csi_amp.curve3.setData(x_idx, y_amp,pen='b')
+            self.csi_amp.curve3.setData(x_idx, amp,pen=QtGui.QColor(0,255,255))
 
     def data_to_csi(self, data):
         csi_status = data[0]
@@ -516,27 +610,8 @@ class CSIWidget(QtGui.QWidget):
 
         return csi
 
-    def draw_amp_and_display_text(self, data):
-
-        csi_status = data[0]
-        csi = self.data_to_csi(data[1])
-        draw_amp(csi,0)
-
-        chw = {0:'20', 3:'40'}
-        self.tstamp_t.setText('Time Stamp = {}'.format(csi_status['tstamp']))
-        self.channel_t.setText('Channel = {} MHz'.format(csi_status['channel']))
-        self.bw_t.setText('Bandwidth = {} MHz'.format(chw[csi_status['chanBW']]))
-        self.rate_t.setText('Rate code = 0x{:02X}'.format(csi_status['rate']))
-        self.rssi_t.setText('RSSI (combiled) = {}'.format(csi_status['rssi']))
-        self.rssi0_t.setText('RSSI Chain 0 = {}'.format(csi_status['rssi_0']))
-        self.rssi1_t.setText('RSSI Chain 1 = {}'.format(csi_status['rssi_1']))
-        self.rssi2_t.setText('RSSI Chain 2 = {}'.format(csi_status['rssi_2']))
-        self.nf_t.setText('Noise = {} dBm'.format(csi_status['noise']))
- 
-        return
-
     def start_ping(self):
-        os.system('killall -9 fping')
+        self.stop_ping()
         
         ping_interval = '50'
         if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
@@ -554,6 +629,20 @@ class CSIWidget(QtGui.QWidget):
     def stop_ping(self):
         os.system('killall -9 fping')
 
+    def update_table(self):
+        if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
+            self.table.item(0, 0).setText(self.tb_sta1ip.text())
+
+        if (len(self.tb_sta2ip.text())>0 and len(self.tb_sta2len.text())>0):
+            self.table.item(1, 0).setText(self.tb_sta2ip.text())
+
+        if (len(self.tb_sta3ip.text())>0 and len(self.tb_sta3len.text())>0):
+            self.table.item(2, 0).setText(self.tb_sta3ip.text())
+            
+        self.table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+        
     def train_start_func(self):
         if (len(self.tb_ap.text())<=0):
             return
@@ -577,30 +666,15 @@ class CSIWidget(QtGui.QWidget):
         self.started = True
 
         self.start_ping()
+        self.q0.queue.clear()
+        self.q1.queue.clear()
+        self.q2.queue.clear()
 
-        #self.timer = perpetualTimer(0.5,self.timer_cb)
-        #self.timer.start()
-        timer = Timer(10, self.train_timer_cb)
-        timer.start()
+        self.train_timer = Timer(10, self.train_timer_cb)
+        self.train_timer.start()
         return
 
-    def update_table(self):
-        if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
-            self.table.setItem(0, 0, QtGui.QTableWidgetItem(self.tb_sta1ip.text()))
-
-        if (len(self.tb_sta2ip.text())>0 and len(self.tb_sta2len.text())>0):
-            self.table.setItem(1, 0, QtGui.QTableWidgetItem(self.tb_sta2ip.text()))
-
-        if (len(self.tb_sta3ip.text())>0 and len(self.tb_sta3len.text())>0):
-            self.table.setItem(2, 0, QtGui.QTableWidgetItem(self.tb_sta3ip.text()))
-
-        self.table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
-        
-
     def train_end(self):
-        self.update_table()
         self.stop_ping()
         self.training_btn.setEnabled(True)
         self.training_btn.setText("Training\nComplete")
@@ -611,6 +685,7 @@ class CSIWidget(QtGui.QWidget):
         self.tb_sta2len.setEnabled(True)
         self.tb_sta3ip.setEnabled(True)
         self.tb_sta3len.setEnabled(True)
+        self.update_table()
         return
 
     def test_func(self):
@@ -631,7 +706,7 @@ class CSIWidget(QtGui.QWidget):
 
             self.start_ping()
 
-            self.test_timer = perpetualTimer(0.5,self.test_timer_cb)
+            self.test_timer = perpetualTimer(1,self.test_timer_cb)
             self.test_timer.start()
         else:
             self.stop_ping()

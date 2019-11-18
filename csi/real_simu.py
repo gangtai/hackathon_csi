@@ -90,63 +90,65 @@ class Classification(object):
         
         return self.label        
 
-#==============================================================================
-folder_name = "T:/data/wei/dataset/WIFI/csi_data/long_time_case/case4"
-pos = ["DUT_A", "DUT_B"]
 
-data = {}
-label = {}
-sample_num = 10000000
-for idx, p in enumerate(pos):
-    
-    data[idx], label[idx] = load_data(os.path.join(folder_name, p), idx)
-    
-    if sample_num > data[idx].shape[0]:
-        sample_num = data[idx].shape[0]
+def test():
+    #==============================================================================
+    folder_name = "T:/data/wei/dataset/WIFI/csi_data/long_time_case/case4"
+    pos = ["DUT_A", "DUT_B"]
 
-# Initial Obj and Cluster Centroid Positions
-DUT_obj_dict = {}
-for idx, p in enumerate(pos):
-    
-    DUT_obj_dict[idx] = Classification(data[idx][0:BUF_SIZE, :], idx)
-
-plot_cluster_cent(DUT_obj_dict, pos, "Initial Cluster Centroid")
-
-print("Start Clustering...")
-
-dist = np.zeros(len(pos), float)
-pred = np.zeros((len(pos), sample_num-BUF_SIZE), int)
-for s_idx in range(BUF_SIZE+1, sample_num):
-    
-    # Get data from each DUT. 
+    data = {}
+    label = {}
+    sample_num = 10000000
     for idx, p in enumerate(pos):
         
-        curr_data = np.mean(data[idx][s_idx-10:s_idx+1, :], axis=0)
+        data[idx], label[idx] = load_data(os.path.join(folder_name, p), idx)
         
-        # Calculate the distance between each DUT's centroid.
-        for p_idx, p in enumerate(pos):    
-        
-            dist[p_idx] = scipy.spatial.distance.correlation(DUT_obj_dict[p_idx].cent_data, curr_data)
-    
-        # Find the neaest centroid
-        min_idx = np.argmin(dist)
-        
-        # Update the centroid
-        DUT_obj_dict[min_idx].update_cent_data(curr_data)
-        
-        # Make prediction. 
-        pred[idx, s_idx-BUF_SIZE] = DUT_obj_dict[min_idx].prediction()
+        if sample_num > data[idx].shape[0]:
+            sample_num = data[idx].shape[0]
 
-plot_cluster_cent(DUT_obj_dict, pos, "Final Cluster Centroid")
+    # Initial Obj and Cluster Centroid Positions
+    DUT_obj_dict = {}
+    for idx, p in enumerate(pos):
+        
+        DUT_obj_dict[idx] = Classification(data[idx][0:BUF_SIZE, :], idx)
 
-# Performance review
-error = 0
-for idx, p in enumerate(pos):
-    
-    error = error + sum(pred[idx, :] != idx)
-    
-print("Error sample: {}".format(error))
-print("Total sample: {}".format(sample_num))
-print("Acc.: {}".format(1 - error/sample_num))
-    
-    
+    plot_cluster_cent(DUT_obj_dict, pos, "Initial Cluster Centroid")
+
+    print("Start Clustering...")
+
+    dist = np.zeros(len(pos), float)
+    pred = np.zeros((len(pos), sample_num-BUF_SIZE), int)
+    for s_idx in range(BUF_SIZE+1, sample_num):
+        
+        # Get data from each DUT. 
+        for idx, p in enumerate(pos):
+            
+            curr_data = np.mean(data[idx][s_idx-10:s_idx+1, :], axis=0)
+            
+            # Calculate the distance between each DUT's centroid.
+            for p_idx, p in enumerate(pos):    
+            
+                dist[p_idx] = scipy.spatial.distance.correlation(DUT_obj_dict[p_idx].cent_data, curr_data)
+        
+            # Find the neaest centroid
+            min_idx = np.argmin(dist)
+            
+            # Update the centroid
+            DUT_obj_dict[min_idx].update_cent_data(curr_data)
+            
+            # Make prediction. 
+            pred[idx, s_idx-BUF_SIZE] = DUT_obj_dict[min_idx].prediction()
+
+    plot_cluster_cent(DUT_obj_dict, pos, "Final Cluster Centroid")
+
+    # Performance review
+    error = 0
+    for idx, p in enumerate(pos):
+        
+        error = error + sum(pred[idx, :] != idx)
+        
+    print("Error sample: {}".format(error))
+    print("Total sample: {}".format(sample_num))
+    print("Acc.: {}".format(1 - error/sample_num))
+        
+        
