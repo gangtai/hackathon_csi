@@ -10,10 +10,11 @@ import queue
 from threading import Timer,Thread,Event
 import threading
 from csi.real_simu import Classification
-import scipy
+import scipy 
 # for debugging
 import ptvsd
 import time
+import pandas as pd 
 
 SERVER_IP = "192.168.127.225"
 
@@ -186,7 +187,7 @@ class CSIPlot(pg.GraphicsWindow):
         #self.showGrid(y=1, alpha=1)
         self.p1 = self.addPlot(title="CSI amplitude")
         self.p1.setRange(xRange=[0, 114])
-        self.p1.setRange(yRange=[10, 30])
+        self.p1.setRange(yRange=[0, 1])
         self.p1.showGrid(y=1, alpha=1)
         self.curve = self.p1.plot()
         self.curve2 = self.p1.plot()
@@ -449,6 +450,9 @@ class CSIWidget(QtGui.QWidget):
         table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
         table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
         self.table = table
+        self.buffer_q0 = []
+        self.buffer_q1 = []
+        self.buffer_q2 = []
 
     def pause_func(self):
         self.pause = not self.pause
@@ -489,45 +493,57 @@ class CSIWidget(QtGui.QWidget):
 
     def inference(self,q):
         test_data = self.get_train_from_q(q)
-        q.queue.clear()
         test_data_mean = np.mean(test_data, axis=0)
+        test_data_mean = test_data_mean - np.min(test_data_mean)
+        test_data_mean = test_data_mean / np.max(test_data_mean)
+
+        q.queue.clear()
 
         dist = np.zeros(len(self.DUT_obj_dict), float)
         for i in range(len(self.DUT_obj_dict)):
             dist[i] = scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean)
 
         min_idx = np.argmin(dist)
+        self.DUT_obj_dict[min_idx].update_cent_data(test_data_mean)
+
+        #if (dist[min_idx]< 0.1):
         pred = self.DUT_obj_dict[min_idx].prediction()
+        #else:
+        #    pred = -1
         return pred, test_data_mean, dist[0]
         
     def test_timer_cb(self):
-        print("q0 test in",self.q0.qsize())
-        print("q1 test in ",self.q1.qsize())
-        print("q2 test in ",self.q2.qsize())
+        QBUF_SIZE = 25
 
         if(self.q0.qsize() > TEST_LEN):
             pred, test_data_mean, corr = self.inference(self.q0)
+            print(len(self.buffer_q0))
+            if(len(self.buffer_q0) > QBUF_SIZE):
+                self.buffer_q0.pop(0)
+            self.buffer_q0.append(pred)
+            pred_avg = scipy.stats.mode(self.buffer_q0)[0][0]
             self.draw_amp_signal.emit((test_data_mean,0))
-            self.update_table_status(0,pred,corr)
+            self.update_table_status(0,pred_avg,corr)
         
         if(self.q1.qsize() > TEST_LEN):
             pred, test_data_mean, corr = self.inference(self.q1)
+            print(len(self.buffer_q1))
+            if(len(self.buffer_q1) > QBUF_SIZE):
+                self.buffer_q1.pop(0)
+            self.buffer_q1.append(pred)
+            pred_avg = scipy.stats.mode(self.buffer_q1)[0][0]
             self.draw_amp_signal.emit((test_data_mean,1))
-            self.update_table_status(1,pred,corr)
+            self.update_table_status(1,pred_avg,corr)
 
         if(self.q2.qsize() > TEST_LEN):
             pred, test_data_mean, corr = self.inference(self.q2)
             self.draw_amp_signal.emit((test_data_mean,2))
             self.update_table_status(2,pred,corr)
 
-        print("q0 test out",self.q0.qsize())
-        print("q1 test out",self.q1.qsize())
-        print("q2 test out",self.q2.qsize())
-
         self.draw_center_signal.emit()
 
     def update_table_status(self,idx,pred,corr):
-        if(pred == 1):
+        if(pred == 0):
             self.table.item(idx, 1).setBackground(QtGui.QColor(0,255,0))
         else:
             self.table.item(idx, 1).setBackground(QtGui.QColor(255,0,0))
@@ -561,9 +577,12 @@ class CSIWidget(QtGui.QWidget):
             x_idx, y_amp = self._csi.cal_amp(csi)
             train_data_list.append(y_amp)
         
-        curr_data = np.array(train_data_list)
+        curr_data=pd.DataFrame(train_data_list)
+        curr_data = self._remove_inf(curr_data)
+        curr_data = self._remove_zero(curr_data)
+        curr_data = self._remove_nan(curr_data)
 
-        return curr_data
+        return curr_data.values
 
 
     def train_timer_cb(self):
@@ -573,17 +592,23 @@ class CSIWidget(QtGui.QWidget):
         print("q2 ",self.q2.qsize())
         
         if(self.q0.qsize() > TRAIN_LEN):
-            train_data_1 = self.get_train_from_q(self.q0)
-            self.DUT_obj_dict[0] = Classification(train_data_1, 1)
+            test_data_mean = self.get_train_from_q(self.q0)
+            
+            test_data_mean = test_data_mean - np.expand_dims(np.min(test_data_mean, axis=1), axis=-1)
+            test_data_mean = test_data_mean / np.expand_dims(np.max(test_data_mean, axis=1), axis=-1)
+            self.DUT_obj_dict[0] = Classification(test_data_mean, 0)
             self.draw_center_signal.emit()
 
         if(self.q1.qsize() > TRAIN_LEN):
-            train_data_2 = self.get_train_from_q(self.q1)
-            self.DUT_obj_dict[1] = Classification(train_data_2, 2)
+            test_data_mean = self.get_train_from_q(self.q1)
+            
+            test_data_mean = test_data_mean - np.expand_dims(np.min(test_data_mean, axis=1), axis=-1)
+            test_data_mean = test_data_mean / np.expand_dims(np.max(test_data_mean, axis=1), axis=-1)
+            self.DUT_obj_dict[1] = Classification(test_data_mean, 1)
             
         if(self.q2.qsize() > TRAIN_LEN):
-            train_data_3 = self.get_train_from_q(self.q3)
-            self.DUT_obj_dict[2] = Classification(train_data_3, 3)
+            train_data_3 = self.get_train_from_q(self.q2)
+            self.DUT_obj_dict[2] = Classification(train_data_3, 2)
         
         self.train_end()
 
@@ -613,7 +638,7 @@ class CSIWidget(QtGui.QWidget):
     def start_ping(self):
         self.stop_ping()
         
-        ping_interval = '50'
+        ping_interval = '20'
         if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
             os.system('fping '+self.tb_sta1ip.text()+' -l -p '+ping_interval+' -b '+str(self.tb_sta1len.text())+' > /dev/null &')
             print('start ping '+self.tb_sta1ip.text())
@@ -670,7 +695,7 @@ class CSIWidget(QtGui.QWidget):
         self.q1.queue.clear()
         self.q2.queue.clear()
 
-        self.train_timer = Timer(10, self.train_timer_cb)
+        self.train_timer = Timer(5, self.train_timer_cb)
         self.train_timer.start()
         return
 
@@ -706,7 +731,7 @@ class CSIWidget(QtGui.QWidget):
 
             self.start_ping()
 
-            self.test_timer = perpetualTimer(1,self.test_timer_cb)
+            self.test_timer = perpetualTimer(0.25,self.test_timer_cb)
             self.test_timer.start()
         else:
             self.stop_ping()

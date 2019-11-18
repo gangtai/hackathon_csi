@@ -11,7 +11,7 @@ import pandas as pd
 import scipy
 import matplotlib.pyplot as plt
 
-BUF_SIZE = 100
+BUF_SIZE = 10
 SUBCARRIER = 114
 
 def _remove_nan(data):
@@ -80,7 +80,7 @@ class Classification(object):
     def update_cent_data(self, input_data):
                
         self.data_buffer[self.buf_idx, :] = input_data
-        self.cent_data = self._get_centroid(self.data_buffer)
+        self.cent_data = self._get_centroid(self.data_buffer[0:BUF_SIZE])
         
         self.buf_idx = self.buf_idx + 1
         if self.buf_idx >= BUF_SIZE:
