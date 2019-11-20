@@ -322,6 +322,13 @@ class CSIWidget(QtGui.QWidget):
         self.training_btn.clicked.connect(self.train_start_func)
         self.testing_btn.clicked.connect(self.test_func)
 
+        # adjustable
+        self.tb_train_time = QtGui.QLineEdit("10")
+        self.tb_train_time.setMaximumWidth(width/6)
+        self.tb_fping_interval = QtGui.QLineEdit("50")
+        self.tb_fping_interval.setMaximumWidth(width/6)
+        self.cb_tracking = QtGui.QCheckBox("Track")
+
         # Layout
         self.lo_ap = QtGui.QHBoxLayout()
         self.lo_ap.addWidget(self.label_ap)
@@ -352,11 +359,15 @@ class CSIWidget(QtGui.QWidget):
         self.lo_train_test_button.addWidget(self.training_btn)
         self.lo_train_test_button.addWidget(self.testing_btn)
 
-        #self.v1.addLayout(self.lo_train_test_button);
-        #self.training_btn.clicked.connect(self.start_func)
+        self.lo_adjustable_config = QtGui.QHBoxLayout()
+        self.lo_adjustable_config.addWidget(self.tb_train_time)
+        self.lo_adjustable_config.addWidget(self.tb_fping_interval)
+        self.lo_adjustable_config.addWidget(self.cb_tracking)
 
 
-        self.v1 = QtGui.QVBoxLayout()
+        self.v1_widget = QtGui.QWidget()
+        self.v1_widget.setFixedWidth(250)
+        self.v1 = QtGui.QVBoxLayout(self.v1_widget)
         self.v1.addLayout(self.lo_ap)
         self.v1.addLayout(self.lo_sta1ip)
         self.v1.addLayout(self.lo_sta1len)
@@ -365,9 +376,7 @@ class CSIWidget(QtGui.QWidget):
         self.v1.addLayout(self.lo_sta3ip)
         self.v1.addLayout(self.lo_sta3len)
         self.v1.addLayout(self.lo_train_test_button)
-        self.v1_widget = QtGui.QWidget()
-        self.v1_widget.setLayout(self.v1)
-        self.v1_widget.setFixedWidth(250)
+        self.v1.addLayout(self.lo_adjustable_config)
 
         self.table_init()
 
@@ -405,14 +414,14 @@ class CSIWidget(QtGui.QWidget):
     def table_init(self):
         table = QtGui.QTableWidget()
 
-        font = QtGui.QFont('å¾®è»Ÿé›…é»‘', 8)
-        font.setBold(True)  #è¨­ç½®å­—é«”åŠ ç²—
-        table.horizontalHeader().setFont(font) #è¨­ç½®è¡¨é ­å­—é«” 
+        font = QtGui.QFont('·L³n¶®¶Â', 8)
+        font.setBold(True)  #³]¸m¦rÅé¥[²Ê
+        table.horizontalHeader().setFont(font) #³]¸mªíÀY¦rÅé 
             
-        table.setFrameShape(QtGui.QFrame.NoFrame)  ##è¨­ç½®ç„¡è¡¨æ ¼çš„å¤–æ¡†
-        table.horizontalHeader().setFixedHeight(80) ##è¨­ç½®è¡¨é ­é«˜åº¦
-        table.setFixedHeight(300) ##è¨­ç½®è¡¨é ­é«˜åº¦
-        #table.horizontalHeader().setStretchLastSection(True) ##è¨­ç½®æœ€å¾Œä¸€åˆ—æ‹‰ä¼¸è‡³æœ€å¤§
+        table.setFrameShape(QtGui.QFrame.NoFrame)  ##³]¸mµLªí®æªº¥~®Ø
+        table.horizontalHeader().setFixedHeight(80) ##³]¸mªíÀY°ª«×
+        table.setFixedHeight(300) ##³]¸mªíÀY°ª«×
+        #table.horizontalHeader().setStretchLastSection(True) ##³]¸m³Ì«á¤@¦C©Ô¦ù¦Ü³Ì¤j
         table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
         table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.Stretch)
         table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
@@ -420,7 +429,7 @@ class CSIWidget(QtGui.QWidget):
         table.setColumnCount(3)
         table.setRowCount(3)
         
-        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#è¨­ç½®è¡¨é ­æ–‡å­—
+        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#³]¸mªíÀY¤å¦r
 
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(0, 0, newItem)
@@ -584,7 +593,6 @@ class CSIWidget(QtGui.QWidget):
 
         return curr_data.values
 
-
     def train_timer_cb(self):
         #if qsize > 100 then call train_api
         print("q0 ",self.q0.qsize())
@@ -638,7 +646,11 @@ class CSIWidget(QtGui.QWidget):
     def start_ping(self):
         self.stop_ping()
         
+        if (len(self.tb_fping_interval.text())>0):
+            ping_interval = self.tb_fping_interval.text()
+        else:
         ping_interval = '20'
+
         if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
             os.system('fping '+self.tb_sta1ip.text()+' -l -p '+ping_interval+' -b '+str(self.tb_sta1len.text())+' > /dev/null &')
             print('start ping '+self.tb_sta1ip.text())
@@ -690,17 +702,16 @@ class CSIWidget(QtGui.QWidget):
         self._csi.start()
         self.started = True
 
-        self.start_ping()
         self.q0.queue.clear()
         self.q1.queue.clear()
         self.q2.queue.clear()
+        self.start_ping()
 
-        self.train_timer = Timer(5, self.train_timer_cb)
+        self.train_timer = Timer(int(self.tb_train_time.text()), self.train_timer_cb)
         self.train_timer.start()
         return
 
     def train_end(self):
-        self.stop_ping()
         self.training_btn.setEnabled(True)
         self.training_btn.setText("Training\nComplete")
         self.testing_btn.setEnabled(True)
@@ -710,6 +721,11 @@ class CSIWidget(QtGui.QWidget):
         self.tb_sta2len.setEnabled(True)
         self.tb_sta3ip.setEnabled(True)
         self.tb_sta3len.setEnabled(True)
+
+        self.stop_ping()
+        self._csi.stop()
+        self.started = False
+
         self.update_table()
         return
 
@@ -729,13 +745,14 @@ class CSIWidget(QtGui.QWidget):
             self._csi.start()
             self.started = True
 
+            self.q0.queue.clear()
+            self.q1.queue.clear()
+            self.q2.queue.clear()
             self.start_ping()
 
             self.test_timer = perpetualTimer(0.25,self.test_timer_cb)
             self.test_timer.start()
         else:
-            self.stop_ping()
-            self.test_timer.cancel()
             self.testing_btn.setText("Test\nStart")
             self.training_btn.setEnabled(True)
             self.tb_sta1ip.setEnabled(True)
@@ -744,9 +761,12 @@ class CSIWidget(QtGui.QWidget):
             self.tb_sta2len.setEnabled(True)
             self.tb_sta3ip.setEnabled(True)
             self.tb_sta3len.setEnabled(True)
-        return
 
-        return csi
+            self.test_timer.cancel()
+            self.stop_ping()
+            self._csi.stop()
+            self.started = False
+        return
 
     def draw_amp_and_display_text(self, data):
 
