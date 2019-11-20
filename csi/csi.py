@@ -118,6 +118,7 @@ class IwCSI(QtCore.QThread):
                 except Exception as e:
                     print(e)
  
+
     def cal_amp_phase(self, csi):
         try:
             x_idx = [i for i in range(len(csi))]
@@ -189,10 +190,12 @@ class CSIPlot(pg.GraphicsWindow):
         self.p1.setRange(xRange=[0, 114])
         self.p1.setRange(yRange=[0, 1])
         self.p1.showGrid(y=1, alpha=1)
-        self.curve = self.p1.plot()
-        self.curve2 = self.p1.plot()
-        self.curve3 = self.p1.plot()
-        self.curve_valid = self.p1.plot()
+        self.p1.addLegend()
+        self.curve = self.p1.plot(name="STA 1")
+
+        self.curve2 = self.p1.plot(name="STA 2")
+        self.curve3 = self.p1.plot(name="STA 3")
+        self.curve_valid = self.p1.plot(name="Valid STA")
         #self.addItem(self.axis_text)
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
@@ -203,7 +206,7 @@ class CSIPlot(pg.GraphicsWindow):
 class CSIWidget(QtGui.QWidget):
     draw_amp_signal = QtCore.pyqtSignal(tuple)
     draw_center_signal = QtCore.pyqtSignal()
-    update_table_signal = QtCore.pyqtSignal()
+
     def __init__(self, parent = None, title = '', server_ip = SERVER_IP):
         super(CSIWidget, self).__init__(parent)
         self.started = False
@@ -414,14 +417,14 @@ class CSIWidget(QtGui.QWidget):
     def table_init(self):
         table = QtGui.QTableWidget()
 
-        font = QtGui.QFont('·L³n¶®¶Â', 8)
-        font.setBold(True)  #³]¸m¦rÅé¥[²Ê
-        table.horizontalHeader().setFont(font) #³]¸mªíÀY¦rÅé 
+        font = QtGui.QFont('ï¿½Lï¿½nï¿½ï¿½ï¿½ï¿½', 8)
+        font.setBold(True)  #ï¿½]ï¿½mï¿½rï¿½ï¿½[ï¿½ï¿½
+        table.horizontalHeader().setFont(font) #ï¿½]ï¿½mï¿½ï¿½ï¿½Yï¿½rï¿½ï¿½ 
             
-        table.setFrameShape(QtGui.QFrame.NoFrame)  ##³]¸mµLªí®æªº¥~®Ø
-        table.horizontalHeader().setFixedHeight(80) ##³]¸mªíÀY°ª«×
-        table.setFixedHeight(300) ##³]¸mªíÀY°ª«×
-        #table.horizontalHeader().setStretchLastSection(True) ##³]¸m³Ì«á¤@¦C©Ô¦ù¦Ü³Ì¤j
+        table.setFrameShape(QtGui.QFrame.NoFrame)  ##ï¿½]ï¿½mï¿½Lï¿½ï¿½ï¿½æªºï¿½~ï¿½ï¿½
+        table.horizontalHeader().setFixedHeight(80) ##ï¿½]ï¿½mï¿½ï¿½ï¿½Yï¿½ï¿½ï¿½ï¿½
+        table.setFixedHeight(300) ##ï¿½]ï¿½mï¿½ï¿½ï¿½Yï¿½ï¿½ï¿½ï¿½
+        #table.horizontalHeader().setStretchLastSection(True) ##ï¿½]ï¿½mï¿½Ì«ï¿½@ï¿½Cï¿½Ô¦ï¿½ï¿½Ü³Ì¤j
         table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
         table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.Stretch)
         table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
@@ -429,7 +432,7 @@ class CSIWidget(QtGui.QWidget):
         table.setColumnCount(3)
         table.setRowCount(3)
         
-        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#³]¸mªíÀY¤å¦r
+        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#ï¿½]ï¿½mï¿½ï¿½ï¿½Yï¿½ï¿½r
 
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(0, 0, newItem)
@@ -494,7 +497,7 @@ class CSIWidget(QtGui.QWidget):
     def draw_center_cb(self):
         x_idx = [i for i in range(114)]
         self.csi_amp.curve_valid.clear()
-        self.csi_amp.curve_valid.setData(x_idx, self.DUT_obj_dict[0].cent_data,pen='g')
+        self.csi_amp.curve_valid.setData(x_idx, self.DUT_obj_dict[0].cent_data,pen=pg.mkPen('g', width=2))
         #self.update_table()
 
     def draw_amp_cb(self,data):
@@ -522,42 +525,61 @@ class CSIWidget(QtGui.QWidget):
         return pred, test_data_mean, dist[0]
         
     def test_timer_cb(self):
+        print("q0 ",self.q0.qsize())
+        print("q1 ",self.q1.qsize())
+        print("q2 ",self.q2.qsize())
         QBUF_SIZE = 25
-
+        CORR_MAX = 2
+        corr0 = CORR_MAX
+        corr1 = CORR_MAX
+        corr2 = CORR_MAX
+        pred_avg0 = -1
+        pred_avg1 = -1
+        pred_avg2 = -1
         if(self.q0.qsize() > TEST_LEN):
-            pred, test_data_mean, corr = self.inference(self.q0)
-            print(len(self.buffer_q0))
+            pred, test_data_mean, corr0 = self.inference(self.q0)
+            #print(len(self.buffer_q0))
             if(len(self.buffer_q0) > QBUF_SIZE):
                 self.buffer_q0.pop(0)
             self.buffer_q0.append(pred)
-            pred_avg = scipy.stats.mode(self.buffer_q0)[0][0]
+            pred_avg0 = scipy.stats.mode(self.buffer_q0)[0][0]
             self.draw_amp_signal.emit((test_data_mean,0))
-            self.update_table_status(0,pred_avg,corr)
-        
+            
         if(self.q1.qsize() > TEST_LEN):
-            pred, test_data_mean, corr = self.inference(self.q1)
-            print(len(self.buffer_q1))
+            pred, test_data_mean, corr1 = self.inference(self.q1)
+            #print(len(self.buffer_q1))
             if(len(self.buffer_q1) > QBUF_SIZE):
                 self.buffer_q1.pop(0)
             self.buffer_q1.append(pred)
-            pred_avg = scipy.stats.mode(self.buffer_q1)[0][0]
+            pred_avg1 = scipy.stats.mode(self.buffer_q1)[0][0]
             self.draw_amp_signal.emit((test_data_mean,1))
-            self.update_table_status(1,pred_avg,corr)
-
+            
         if(self.q2.qsize() > TEST_LEN):
-            pred, test_data_mean, corr = self.inference(self.q2)
+            pred, test_data_mean, corr2 = self.inference(self.q2)
+            #print(len(self.buffer_q2))
+            if(len(self.buffer_q2) > QBUF_SIZE):
+                self.buffer_q2.pop(0)
+            self.buffer_q2.append(pred)
+            pred_avg2 = scipy.stats.mode(self.buffer_q2)[0][0]
             self.draw_amp_signal.emit((test_data_mean,2))
-            self.update_table_status(2,pred,corr)
-
+        
+        corr_list = [corr0,corr1,corr2]
+        pred_list = [pred_avg0,pred_avg1,pred_avg2]
+        
+        self.update_table_status(pred_list,corr_list)
         self.draw_center_signal.emit()
 
-    def update_table_status(self,idx,pred,corr):
-        if(pred == 0):
-            self.table.item(idx, 1).setBackground(QtGui.QColor(0,255,0))
-        else:
-            self.table.item(idx, 1).setBackground(QtGui.QColor(255,0,0))
-
-        self.table.item(idx, 2).setText( str('%.4f' % corr))
+    def update_table_status(self,pred_list,corr_list):
+        min_idx = np.argmin(corr_list)
+        for i in range(len(corr_list)):
+            if(i == min_idx and pred_list[i] == 0):
+                self.table.item(i, 1).setBackground(QtGui.QColor(0,255,0))
+            else:
+                self.table.item(i, 1).setBackground(QtGui.QColor(255,0,0))
+            if(corr_list[i] == 2):
+                self.table.item(i, 2).setText("N/A")
+            else:
+                self.table.item(i, 2).setText( str('%.4f' % corr_list[i]))
 
     def _remove_nan(self,data):
         
@@ -615,8 +637,10 @@ class CSIWidget(QtGui.QWidget):
             self.DUT_obj_dict[1] = Classification(test_data_mean, 1)
             
         if(self.q2.qsize() > TRAIN_LEN):
-            train_data_3 = self.get_train_from_q(self.q2)
-            self.DUT_obj_dict[2] = Classification(train_data_3, 2)
+            test_data_mean = self.get_train_from_q(self.q2)
+            test_data_mean = test_data_mean - np.expand_dims(np.min(test_data_mean, axis=1), axis=-1)
+            test_data_mean = test_data_mean / np.expand_dims(np.max(test_data_mean, axis=1), axis=-1)
+            self.DUT_obj_dict[2] = Classification(test_data_mean, 2)
         
         self.train_end()
 
@@ -788,10 +812,9 @@ class CSIWidget(QtGui.QWidget):
 
     def update(self, data):
         try:
-            if (self.pause):
-                return
             csi_status = data[0]
             csi = self.data_to_csi(data)
+            #print("csi_payload len:",csi_status['payload_len'])
             if (len(csi)==114):
                 if(len(self.tb_sta1len.text()) > 0 and csi_status['payload_len'] == 88 + int(self.tb_sta1len.text())): # label = 1
                     self.q0.put(data,False)
