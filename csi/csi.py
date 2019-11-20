@@ -23,7 +23,7 @@ SERVER_IP = "192.168.127.225"
 
 CSI_PORT = 3490
 TRAIN_LEN = 100
-TEST_LEN = 5
+TEST_LEN = 1
 # typedef struct
 # {
 #     uint64_t tstamp;         /* h/w assigned time stamp */
@@ -294,7 +294,7 @@ class CSIWidget(QtGui.QWidget):
         self.label_sta2ip = QtGui.QLabel(self)
         self.label_sta2ip.setText("STA2 IP")
 
-        self.tb_sta2ip = QtGui.QLineEdit("192.168.127.237")
+        self.tb_sta2ip = QtGui.QLineEdit("192.168.127.236")
         self.tb_sta2ip.setMaximumWidth(width/2)
 
         self.label_sta2len = QtGui.QLabel(self)
@@ -307,12 +307,12 @@ class CSIWidget(QtGui.QWidget):
 
         self.label_sta3ip = QtGui.QLabel(self)
         self.label_sta3ip.setText("STA3 IP")
-        self.tb_sta3ip = QtGui.QLineEdit("")
+        self.tb_sta3ip = QtGui.QLineEdit("192.168.127.237")
         self.tb_sta3ip.setMaximumWidth(width/2)
 
         self.label_sta3len = QtGui.QLabel(self)
         self.label_sta3len.setText("STA3 Len")
-        self.tb_sta3len = QtGui.QLineEdit("")
+        self.tb_sta3len = QtGui.QLineEdit("3")
         self.tb_sta3len.setMaximumWidth(width/6)
 
         self.training_btn = QtGui.QPushButton('Training\nStart')
@@ -465,6 +465,9 @@ class CSIWidget(QtGui.QWidget):
         self.buffer_q0 = []
         self.buffer_q1 = []
         self.buffer_q2 = []
+        self.buffer_q0_corr = []
+        self.buffer_q1_corr = []
+        self.buffer_q2_corr = []
 
     def pause_func(self):
         self.pause = not self.pause
@@ -513,10 +516,11 @@ class CSIWidget(QtGui.QWidget):
 
         dist = np.zeros(len(self.DUT_obj_dict), float)
         for i in range(len(self.DUT_obj_dict)):
+            #dist[i] = scipy.spatial.distance.cosine(self.DUT_obj_dict[i].cent_data, test_data_mean)# + scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean) + scipy.spatial.distance.euclidean(self.DUT_obj_dict[i].cent_data, test_data_mean)
             dist[i] = scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean)
 
         min_idx = np.argmin(dist)
-        self.DUT_obj_dict[min_idx].update_cent_data(test_data_mean)
+        #self.DUT_obj_dict[min_idx].update_cent_data(test_data_mean)
 
         #if (dist[min_idx]< 0.1):
         pred = self.DUT_obj_dict[min_idx].prediction()
@@ -529,6 +533,7 @@ class CSIWidget(QtGui.QWidget):
         print("q1 ",self.q1.qsize())
         print("q2 ",self.q2.qsize())
         QBUF_SIZE = 25
+        CORR_BUF_SIZE = 10
         CORR_MAX = 2
         corr0 = CORR_MAX
         corr1 = CORR_MAX
@@ -536,50 +541,75 @@ class CSIWidget(QtGui.QWidget):
         pred_avg0 = -1
         pred_avg1 = -1
         pred_avg2 = -1
+        corr_avg0 = 10
+        corr_avg1 = 10
+        corr_avg2 = 10
+        test_data_mean = np.empty((3,114))
         if(self.q0.qsize() > TEST_LEN):
-            pred, test_data_mean, corr0 = self.inference(self.q0)
+            pred, test_data_mean[0,:], corr0 = self.inference(self.q0)
             #print(len(self.buffer_q0))
             if(len(self.buffer_q0) > QBUF_SIZE):
                 self.buffer_q0.pop(0)
             self.buffer_q0.append(pred)
             pred_avg0 = scipy.stats.mode(self.buffer_q0)[0][0]
-            self.draw_amp_signal.emit((test_data_mean,0))
+
+            if(len(self.buffer_q0_corr) > CORR_BUF_SIZE):
+                self.buffer_q0_corr.pop(0)
+            self.buffer_q0_corr.append(corr0)
+            corr_avg0 = np.mean(self.buffer_q0_corr)         
+        
+            self.draw_amp_signal.emit((test_data_mean[0,:],0))
             
         if(self.q1.qsize() > TEST_LEN):
-            pred, test_data_mean, corr1 = self.inference(self.q1)
+            pred, test_data_mean[1,:], corr1 = self.inference(self.q1)
             #print(len(self.buffer_q1))
             if(len(self.buffer_q1) > QBUF_SIZE):
                 self.buffer_q1.pop(0)
             self.buffer_q1.append(pred)
             pred_avg1 = scipy.stats.mode(self.buffer_q1)[0][0]
-            self.draw_amp_signal.emit((test_data_mean,1))
+
+            if(len(self.buffer_q1_corr) > CORR_BUF_SIZE):
+                self.buffer_q1_corr.pop(0)
+            self.buffer_q1_corr.append(corr1)
+            corr_avg1 = np.mean(self.buffer_q1_corr)    
+
+            self.draw_amp_signal.emit((test_data_mean[1,:],1))
             
         if(self.q2.qsize() > TEST_LEN):
-            pred, test_data_mean, corr2 = self.inference(self.q2)
+            pred, test_data_mean[2,:], corr2 = self.inference(self.q2)
             #print(len(self.buffer_q2))
             if(len(self.buffer_q2) > QBUF_SIZE):
                 self.buffer_q2.pop(0)
             self.buffer_q2.append(pred)
             pred_avg2 = scipy.stats.mode(self.buffer_q2)[0][0]
-            self.draw_amp_signal.emit((test_data_mean,2))
+
+
+            if(len(self.buffer_q2_corr) > CORR_BUF_SIZE):
+                self.buffer_q2_corr.pop(0)
+            self.buffer_q2_corr.append(corr2)
+            corr_avg2 = np.mean(self.buffer_q2_corr)
+
+            self.draw_amp_signal.emit((test_data_mean[2,:],2))
         
-        corr_list = [corr0,corr1,corr2]
+        corr_list = [corr_avg0,corr_avg1,corr_avg2]
         pred_list = [pred_avg0,pred_avg1,pred_avg2]
-        
-        self.update_table_status(pred_list,corr_list)
+        #data_list = [pred_avg0,pred_avg1,pred_avg2]
+
+        self.update_table_status(pred_list,corr_list, test_data_mean)
         self.draw_center_signal.emit()
 
-    def update_table_status(self,pred_list,corr_list):
+    def update_table_status(self,pred_list,corr_list,test_data_mean):
         min_idx = np.argmin(corr_list)
         for i in range(len(corr_list)):
-            if(i == min_idx and pred_list[i] == 0):
+            if(i == min_idx and pred_list[i] == 0 and corr_list[i] < 0.08):
                 self.table.item(i, 1).setBackground(QtGui.QColor(0,255,0))
+                if (self.cb_tracking.isChecked()):
+                    self.DUT_obj_dict[0].update_cent_data(test_data_mean[i,:])
             else:
                 self.table.item(i, 1).setBackground(QtGui.QColor(255,0,0))
-            if(corr_list[i] == 2):
-                self.table.item(i, 2).setText("N/A")
-            else:
+            if(corr_list[i] != 2):
                 self.table.item(i, 2).setText( str('%.4f' % corr_list[i]))
+                
 
     def _remove_nan(self,data):
         
@@ -608,7 +638,7 @@ class CSIWidget(QtGui.QWidget):
             x_idx, y_amp = self._csi.cal_amp(csi)
             train_data_list.append(y_amp)
         
-        curr_data=pd.DataFrame(train_data_list)
+        curr_data = pd.DataFrame(train_data_list)
         curr_data = self._remove_inf(curr_data)
         curr_data = self._remove_zero(curr_data)
         curr_data = self._remove_nan(curr_data)
@@ -638,6 +668,7 @@ class CSIWidget(QtGui.QWidget):
             
         if(self.q2.qsize() > TRAIN_LEN):
             test_data_mean = self.get_train_from_q(self.q2)
+            
             test_data_mean = test_data_mean - np.expand_dims(np.min(test_data_mean, axis=1), axis=-1)
             test_data_mean = test_data_mean / np.expand_dims(np.max(test_data_mean, axis=1), axis=-1)
             self.DUT_obj_dict[2] = Classification(test_data_mean, 2)
@@ -673,7 +704,7 @@ class CSIWidget(QtGui.QWidget):
         if (len(self.tb_fping_interval.text())>0):
             ping_interval = self.tb_fping_interval.text()
         else:
-        ping_interval = '20'
+            ping_interval = '50'
 
         if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
             os.system('fping '+self.tb_sta1ip.text()+' -l -p '+ping_interval+' -b '+str(self.tb_sta1len.text())+' > /dev/null &')
@@ -774,7 +805,7 @@ class CSIWidget(QtGui.QWidget):
             self.q2.queue.clear()
             self.start_ping()
 
-            self.test_timer = perpetualTimer(0.25,self.test_timer_cb)
+            self.test_timer = perpetualTimer(0.5,self.test_timer_cb)
             self.test_timer.start()
         else:
             self.testing_btn.setText("Test\nStart")
