@@ -243,6 +243,7 @@ class CSIWidget(QtGui.QWidget):
         self.ip_box.addWidget(self.stop_btn)
 
         width = 250
+        label_width = 80
         self.tstamp_t.setMaximumWidth(width)
         self.channel_t.setMaximumWidth(width)
         self.bw_t.setMaximumWidth(width)
@@ -278,47 +279,51 @@ class CSIWidget(QtGui.QWidget):
         #FRED: elements for demo
         self.label_ap = QtGui.QLabel(self)
         self.label_ap.setText("AP IP")
+        self.label_ap.setFixedWidth(label_width)
         self.tb_ap = QtGui.QLineEdit(server_ip)
         self.tb_ap.setMaximumWidth(width/2)
 
         self.label_sta1ip = QtGui.QLabel(self)
         self.label_sta1ip.setText("STA1 IP")
+        self.label_sta1ip.setFixedWidth(label_width)
         self.tb_sta1ip = QtGui.QLineEdit("192.168.127.235")
         self.tb_sta1ip.setMaximumWidth(width/2)
 
         self.label_sta1len = QtGui.QLabel(self)
         self.label_sta1len.setText("STA1 Len")
+        self.label_sta1len.setFixedWidth(label_width)
         self.tb_sta1len = QtGui.QLineEdit("1")
         self.tb_sta1len.setMaximumWidth(width/6)
 
         self.label_sta2ip = QtGui.QLabel(self)
         self.label_sta2ip.setText("STA2 IP")
-
+        self.label_sta2ip.setFixedWidth(label_width)
         self.tb_sta2ip = QtGui.QLineEdit("192.168.127.236")
         self.tb_sta2ip.setMaximumWidth(width/2)
 
         self.label_sta2len = QtGui.QLabel(self)
         self.label_sta2len.setText("STA2 Len")
-
-        self.tb_sta2len = QtGui.QLabel(self)
+        self.label_sta2len.setFixedWidth(label_width)
         self.tb_sta2len = QtGui.QLineEdit("2")
         self.tb_sta2len.setMaximumWidth(width/6)
         
 
         self.label_sta3ip = QtGui.QLabel(self)
         self.label_sta3ip.setText("STA3 IP")
+        self.label_sta3ip.setFixedWidth(label_width)
         self.tb_sta3ip = QtGui.QLineEdit("192.168.127.237")
         self.tb_sta3ip.setMaximumWidth(width/2)
 
         self.label_sta3len = QtGui.QLabel(self)
         self.label_sta3len.setText("STA3 Len")
+        self.label_sta3len.setFixedWidth(label_width)
         self.tb_sta3len = QtGui.QLineEdit("3")
         self.tb_sta3len.setMaximumWidth(width/6)
 
         self.training_btn = QtGui.QPushButton('Training\nStart')
         self.testing_btn = QtGui.QPushButton('Test\nStart')
-        self.training_btn.setMaximumWidth(200)
-        self.testing_btn.setMaximumWidth(200)
+        self.training_btn.setFixedWidth(100)
+        self.testing_btn.setFixedWidth(100)
         self.testing_btn.setEnabled(False)
         self.testing_btn.setCheckable(1)
         self.testing_btn.setChecked(0)
@@ -336,31 +341,41 @@ class CSIWidget(QtGui.QWidget):
         self.lo_ap = QtGui.QHBoxLayout()
         self.lo_ap.addWidget(self.label_ap)
         self.lo_ap.addWidget(self.tb_ap)
+        self.lo_ap.addStretch(1)
 
         self.lo_sta1ip = QtGui.QHBoxLayout()
         self.lo_sta1ip.addWidget(self.label_sta1ip)
         self.lo_sta1ip.addWidget(self.tb_sta1ip)
+        self.lo_sta1ip.addStretch(1)
         self.lo_sta1len = QtGui.QHBoxLayout()
         self.lo_sta1len.addWidget(self.label_sta1len)
         self.lo_sta1len.addWidget(self.tb_sta1len)
+        self.lo_sta1len.addStretch(1)
 
         self.lo_sta2ip = QtGui.QHBoxLayout()
         self.lo_sta2ip.addWidget(self.label_sta2ip)
         self.lo_sta2ip.addWidget(self.tb_sta2ip)
+        self.lo_sta2ip.addStretch(1)
         self.lo_sta2len = QtGui.QHBoxLayout()
         self.lo_sta2len.addWidget(self.label_sta2len)
         self.lo_sta2len.addWidget(self.tb_sta2len)
+        self.lo_sta2len.addStretch(1)
 
         self.lo_sta3ip = QtGui.QHBoxLayout()
         self.lo_sta3ip.addWidget(self.label_sta3ip)
         self.lo_sta3ip.addWidget(self.tb_sta3ip)
+        self.lo_sta3ip.addStretch(1)
         self.lo_sta3len = QtGui.QHBoxLayout()
         self.lo_sta3len.addWidget(self.label_sta3len)
         self.lo_sta3len.addWidget(self.tb_sta3len)
+        self.lo_sta3len.addStretch(1)
 
         self.lo_train_test_button = QtGui.QHBoxLayout()
+        self.lo_train_test_button.addStretch(1)
         self.lo_train_test_button.addWidget(self.training_btn)
+        self.lo_train_test_button.addStretch(2)
         self.lo_train_test_button.addWidget(self.testing_btn)
+        self.lo_train_test_button.addStretch(1)
 
         self.lo_adjustable_config = QtGui.QHBoxLayout()
         self.lo_adjustable_config.addWidget(self.tb_train_time)
@@ -372,13 +387,18 @@ class CSIWidget(QtGui.QWidget):
         self.v1_widget.setFixedWidth(250)
         self.v1 = QtGui.QVBoxLayout(self.v1_widget)
         self.v1.addLayout(self.lo_ap)
+        self.v1.addSpacing(10);
         self.v1.addLayout(self.lo_sta1ip)
         self.v1.addLayout(self.lo_sta1len)
+        self.v1.addSpacing(10);
         self.v1.addLayout(self.lo_sta2ip)
         self.v1.addLayout(self.lo_sta2len)
+        self.v1.addSpacing(10);
         self.v1.addLayout(self.lo_sta3ip)
         self.v1.addLayout(self.lo_sta3len)
+        self.v1.addSpacing(10);
         self.v1.addLayout(self.lo_train_test_button)
+        self.v1.addStretch(50)
         self.v1.addLayout(self.lo_adjustable_config)
 
         self.table_init()
@@ -417,22 +437,24 @@ class CSIWidget(QtGui.QWidget):
     def table_init(self):
         table = QtGui.QTableWidget()
 
-        font = QtGui.QFont('�L�n����', 8)
+        font = QtGui.QFont('�L�n����', 12)
         font.setBold(True)  #�]�m�r��[��
         table.horizontalHeader().setFont(font) #�]�m���Y�r�� 
             
         table.setFrameShape(QtGui.QFrame.NoFrame)  ##�]�m�L���檺�~��
         table.horizontalHeader().setFixedHeight(80) ##�]�m���Y����
         table.setFixedHeight(300) ##�]�m���Y����
-        #table.horizontalHeader().setStretchLastSection(True) ##�]�m�̫�@�C�Ԧ��̤ܳj
-        table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
-        table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.Stretch)
-        table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
-        table.horizontalHeader().setResizeMode(3, QtGui.QHeaderView.Stretch)
-        table.setColumnCount(3)
+        table.horizontalHeader().setStretchLastSection(True)
+        #table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
+        #table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.Stretch)
+        #table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.Stretch)
+        #table.horizontalHeader().setResizeMode(3, QtGui.QHeaderView.Stretch)
+        table.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
+        table.verticalHeader().setDefaultSectionSize(50)
+        table.setColumnCount(4)
         table.setRowCount(3)
         
-        table.setHorizontalHeaderLabels(['IP address','Status','Correlation'])#�]�m���Y��r
+        table.setHorizontalHeaderLabels(['IP address','Status','Correlation','Corr(cos)'])#�]�m���Y��r
 
         newItem = QtGui.QTableWidgetItem("N/A")
         table.setItem(0, 0, newItem)
@@ -451,6 +473,10 @@ class CSIWidget(QtGui.QWidget):
         table.setItem(1, 2, QtGui.QTableWidgetItem("0"))
         table.setItem(2, 2, QtGui.QTableWidgetItem("0"))
 
+        table.setItem(0, 3, QtGui.QTableWidgetItem("0"))
+        table.setItem(1, 3, QtGui.QTableWidgetItem("0"))
+        table.setItem(2, 3, QtGui.QTableWidgetItem("0"))
+
         table.setItem(0, 1, QtGui.QTableWidgetItem())
         table.item(0, 1).setBackground(QtGui.QColor(255,0,0))
         table.setItem(1, 1, QtGui.QTableWidgetItem())
@@ -458,9 +484,10 @@ class CSIWidget(QtGui.QWidget):
         table.setItem(2, 1, QtGui.QTableWidgetItem())
         table.item(2, 1).setBackground(QtGui.QColor(255,0,0))
 
-        table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
-        table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+        #table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        #table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        #table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+
         self.table = table
         self.buffer_q0 = []
         self.buffer_q1 = []
@@ -519,6 +546,7 @@ class CSIWidget(QtGui.QWidget):
             #dist[i] = scipy.spatial.distance.cosine(self.DUT_obj_dict[i].cent_data, test_data_mean)# + scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean) + scipy.spatial.distance.euclidean(self.DUT_obj_dict[i].cent_data, test_data_mean)
             dist[i] = scipy.spatial.distance.correlation(self.DUT_obj_dict[i].cent_data, test_data_mean)
 
+        dist0_cos = scipy.spatial.distance.cosine(self.DUT_obj_dict[0].cent_data, test_data_mean)
         min_idx = np.argmin(dist)
         #self.DUT_obj_dict[min_idx].update_cent_data(test_data_mean)
 
@@ -526,7 +554,7 @@ class CSIWidget(QtGui.QWidget):
         pred = self.DUT_obj_dict[min_idx].prediction()
         #else:
         #    pred = -1
-        return pred, test_data_mean, dist[0]
+        return pred, test_data_mean, dist[0], dist0_cos
         
     def test_timer_cb(self):
         print("q0 ",self.q0.qsize())
@@ -538,16 +566,19 @@ class CSIWidget(QtGui.QWidget):
         corr0 = CORR_MAX
         corr1 = CORR_MAX
         corr2 = CORR_MAX
+        corr0_cos = [CORR_MAX,CORR_MAX,CORR_MAX]
         pred_avg0 = -1
         pred_avg1 = -1
         pred_avg2 = -1
-        corr_avg0 = 10
-        corr_avg1 = 10
-        corr_avg2 = 10
+        corr_avg0 = CORR_MAX
+        corr_avg1 = CORR_MAX
+        corr_avg2 = CORR_MAX
         test_data_mean = np.empty((3,114))
-        if(self.q0.qsize() > TEST_LEN):
-            pred, test_data_mean[0,:], corr0 = self.inference(self.q0)
+
+        if(self.q0.qsize() >= TEST_LEN):
+            pred, test_data_mean[0,:], corr0, corr0_cos[0] = self.inference(self.q0)
             #print(len(self.buffer_q0))
+            print('corr0: '+str(corr0))
             if(len(self.buffer_q0) > QBUF_SIZE):
                 self.buffer_q0.pop(0)
             self.buffer_q0.append(pred)
@@ -559,9 +590,10 @@ class CSIWidget(QtGui.QWidget):
             corr_avg0 = np.mean(self.buffer_q0_corr)         
         
             self.draw_amp_signal.emit((test_data_mean[0,:],0))
+            self.table.item(0, 3).setText(str('%.4f' % corr0_cos[0]))
             
-        if(self.q1.qsize() > TEST_LEN):
-            pred, test_data_mean[1,:], corr1 = self.inference(self.q1)
+        if(self.q1.qsize() >= TEST_LEN):
+            pred, test_data_mean[1,:], corr1, corr0_cos[1] = self.inference(self.q1)
             #print(len(self.buffer_q1))
             if(len(self.buffer_q1) > QBUF_SIZE):
                 self.buffer_q1.pop(0)
@@ -574,9 +606,10 @@ class CSIWidget(QtGui.QWidget):
             corr_avg1 = np.mean(self.buffer_q1_corr)    
 
             self.draw_amp_signal.emit((test_data_mean[1,:],1))
+            self.table.item(1, 3).setText(str('%.4f' % corr0_cos[1]))
             
-        if(self.q2.qsize() > TEST_LEN):
-            pred, test_data_mean[2,:], corr2 = self.inference(self.q2)
+        if(self.q2.qsize() >= TEST_LEN):
+            pred, test_data_mean[2,:], corr2, corr0_cos[2] = self.inference(self.q2)
             #print(len(self.buffer_q2))
             if(len(self.buffer_q2) > QBUF_SIZE):
                 self.buffer_q2.pop(0)
@@ -590,26 +623,34 @@ class CSIWidget(QtGui.QWidget):
             corr_avg2 = np.mean(self.buffer_q2_corr)
 
             self.draw_amp_signal.emit((test_data_mean[2,:],2))
+            self.table.item(2, 3).setText(str('%.4f' % corr0_cos[2]))
         
         corr_list = [corr_avg0,corr_avg1,corr_avg2]
         pred_list = [pred_avg0,pred_avg1,pred_avg2]
-        #data_list = [pred_avg0,pred_avg1,pred_avg2]
+        corr_raw = [corr0,corr1,corr2]
 
-        self.update_table_status(pred_list,corr_list, test_data_mean)
-        self.draw_center_signal.emit()
+        self.update_table_status(pred_list,corr_list,test_data_mean,corr_raw)
 
-    def update_table_status(self,pred_list,corr_list,test_data_mean):
+    def update_table_status(self,pred_list,corr_list,test_data_mean,corr_raw):
         min_idx = np.argmin(corr_list)
         for i in range(len(corr_list)):
-            if(i == min_idx and pred_list[i] == 0 and corr_list[i] < 0.08):
+            if(i == min_idx and pred_list[i] == 0):
+                #if (corr_list[i] < 0.08):
+                    #self.table.item(i, 1).setBackground(QtGui.QColor(0,255,0))
+                #else:
+                #    self.table.item(i, 1).setBackground(QtGui.QColor(255,0,0))
                 self.table.item(i, 1).setBackground(QtGui.QColor(0,255,0))
                 if (self.cb_tracking.isChecked()):
+                    #print('track: update idx '+str(i)+' (corr='+str(corr_raw[i])+') to reference')
                     self.DUT_obj_dict[0].update_cent_data(test_data_mean[i,:])
+                    self.draw_center_signal.emit()
             else:
                 self.table.item(i, 1).setBackground(QtGui.QColor(255,0,0))
-            if(corr_list[i] != 2):
-                self.table.item(i, 2).setText( str('%.4f' % corr_list[i]))
-                
+
+            if(corr_list[i] < 10):
+                self.table.item(i, 2).setText(str('%.4f' % corr_list[i]))
+            else:
+                self.table.item(i, 2).setText('N/A')
 
     def _remove_nan(self,data):
         
@@ -687,6 +728,27 @@ class CSIWidget(QtGui.QWidget):
             self.csi_amp.curve3.clear()
             self.csi_amp.curve3.setData(x_idx, amp,pen=QtGui.QColor(0,255,255))
 
+    def clear_curve(self):
+        self.csi_amp.curve.clear()
+        self.csi_amp.curve2.clear()
+        self.csi_amp.curve3.clear()
+
+    def clear_curve_valid(self):
+        self.csi_amp.curve_valid.clear()
+
+    def clear_queue(self):
+        self.q0.queue.clear()
+        self.q1.queue.clear()
+        self.q2.queue.clear()
+    
+    def clear_buffer(self):
+        self.buffer_q0.clear()
+        self.buffer_q1.clear()
+        self.buffer_q2.clear()
+        self.buffer_q0_corr.clear()
+        self.buffer_q1_corr.clear()
+        self.buffer_q2_corr.clear()
+
     def data_to_csi(self, data):
         csi_status = data[0]
         csi_matrix = data[1]
@@ -724,16 +786,31 @@ class CSIWidget(QtGui.QWidget):
     def update_table(self):
         if (len(self.tb_sta1ip.text())>0 and len(self.tb_sta1len.text())>0):
             self.table.item(0, 0).setText(self.tb_sta1ip.text())
+        else:
+            self.table.item(0, 0).setText('N/A')
+        self.table.item(0, 1).setBackground(QtGui.QColor(255,0,0))
+        self.table.item(0, 2).setText('')
+        self.table.item(0, 3).setText('')
 
         if (len(self.tb_sta2ip.text())>0 and len(self.tb_sta2len.text())>0):
             self.table.item(1, 0).setText(self.tb_sta2ip.text())
+        else:
+            self.table.item(1, 0).setText('N/A')
+        self.table.item(1, 1).setBackground(QtGui.QColor(255,0,0))
+        self.table.item(1, 2).setText('')
+        self.table.item(1, 3).setText('')
 
         if (len(self.tb_sta3ip.text())>0 and len(self.tb_sta3len.text())>0):
             self.table.item(2, 0).setText(self.tb_sta3ip.text())
-            
-        self.table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+        else:
+            self.table.item(2, 0).setText('N/A')
+        self.table.item(2, 1).setBackground(QtGui.QColor(255,0,0))
+        self.table.item(2, 2).setText('')
+        self.table.item(2, 3).setText('')
+
+        #self.table.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        #self.table.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        #self.table.horizontalHeader().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
         
     def train_start_func(self):
         if (len(self.tb_ap.text())<=0):
@@ -751,15 +828,15 @@ class CSIWidget(QtGui.QWidget):
         self.tb_sta2len.setEnabled(False)
         self.tb_sta3ip.setEnabled(False)
         self.tb_sta3len.setEnabled(False)
-        
+        self.clear_curve()
+        self.clear_curve_valid()
+        self.clear_queue()
+
         self._csi = IwCSI(server_ip=self.server_ip)
         self._csi.update.connect(self.update)
         self._csi.start()
         self.started = True
 
-        self.q0.queue.clear()
-        self.q1.queue.clear()
-        self.q2.queue.clear()
         self.start_ping()
 
         self.train_timer = Timer(int(self.tb_train_time.text()), self.train_timer_cb)
@@ -781,7 +858,7 @@ class CSIWidget(QtGui.QWidget):
         self._csi.stop()
         self.started = False
 
-        self.update_table()
+        #self.update_table()
         return
 
     def test_func(self):
@@ -794,18 +871,19 @@ class CSIWidget(QtGui.QWidget):
             self.tb_sta2len.setEnabled(False)
             self.tb_sta3ip.setEnabled(False)
             self.tb_sta3len.setEnabled(False)
-            
+            self.clear_curve()
+            self.update_table()
+            self.clear_queue()
+            self.clear_buffer()
+
             self._csi = IwCSI(server_ip=self.server_ip)
             self._csi.update.connect(self.update)
             self._csi.start()
             self.started = True
 
-            self.q0.queue.clear()
-            self.q1.queue.clear()
-            self.q2.queue.clear()
             self.start_ping()
 
-            self.test_timer = perpetualTimer(0.5,self.test_timer_cb)
+            self.test_timer = perpetualTimer(0.1,self.test_timer_cb)
             self.test_timer.start()
         else:
             self.testing_btn.setText("Test\nStart")
